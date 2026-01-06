@@ -28,6 +28,28 @@ SECTEURS = {
 SECTEURS_LIST = list(SECTEURS.keys())
 T_SECTEURS_LIST = {i.upper(): i for i in SECTEURS_LIST}
 
+
+
+# =====================================================
+# CAGR PAR SECTEUR (NOUVEAU – AJOUT SEULEMENT)
+# =====================================================
+CAGR_SECTEURS = {
+    "Finance": 0.04,
+    "Industrie": 0.03,
+    "Transport": 0.035,
+    "Énergie / Mines": 0.045,
+    "Services": 0.038,
+    "BTP": 0.03,
+    "EPN": 0.042,
+    "Télécom & TIC": 0.05,
+    "Organisation": 0.03
+}
+
+def get_cagr(secteur):
+    # fallback à 3 % si secteur non trouvé
+    return CAGR_SECTEURS.get(secteur, 0.03)
+
+
 # =====================================================
 # SIDEBAR
 # =====================================================
@@ -125,8 +147,12 @@ with tab1:
             st.markdown("### 📈 Projection des budgets (CAGR 3 %)")
 
             if st.button("📊 Prédire 2027, 2028"):
-                df["Prévision budget 2027"] = df["Prévision budget"] * (1 + CAGR)
-                df["Prévision budget 2028"] = df["Prévision budget"] * (1 + CAGR) ** 2
+                secteur = df["Secteur"].iloc[0]
+                cagr = get_cagr(secteur)
+
+                df["Prévision budget 2027"] = df["Prévision budget"] * (1 + cagr)
+                df["Prévision budget 2028"] = df["Prévision budget"] * (1 + cagr) ** 2
+
                 st.session_state.df_pred = df
 
                 st.dataframe(df, use_container_width=True)
@@ -250,12 +276,21 @@ with tab2:
             # ============================
             # PROJECTION 2027–2028
             # ============================
-            st.markdown("### 📈 Projection des budgets (CAGR 3 %)")
+            st.markdown("### 📈 Projection des budgets (CAGR)")
 
             if st.button("📊 Prédire 2027, 2028 (Excel)"):
                 for cat in ["Télécom", "Solutions digitales", "Cyber sécurité", "Data IA"]:
-                    df[f"{cat} 2027"] = df[cat].apply(lambda v: v * (1 + CAGR) if pd.notna(v) else None)
-                    df[f"{cat} 2028"] = df[cat].apply(lambda v: v * (1 + CAGR) ** 2 if pd.notna(v) else None)
+                    df[f"{cat} 2027"] = df.apply(
+                        lambda r: r[cat] * (1 + get_cagr(r["SECTEUR-GROUPE"]))
+                        if pd.notna(r[cat]) else None,
+                        axis=1
+                    )
+
+                    df[f"{cat} 2028"] = df.apply(
+                        lambda r: r[cat] * (1 + get_cagr(r["SECTEUR-GROUPE"])) ** 2
+                        if pd.notna(r[cat]) else None,
+                        axis=1
+                    )
 
                 st.session_state.df_excel_pred = df
 
